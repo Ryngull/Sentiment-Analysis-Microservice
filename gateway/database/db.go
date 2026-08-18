@@ -2,8 +2,6 @@ package database
 
 import (
 	"fmt"
-	"net"
-	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -48,16 +46,16 @@ func InitDB() error {
 		return err
 	}
 
-	query := url.Values{}
-	query.Set("sslmode", envOrDefault("DB_SSLMODE", "disable"))
-	query.Set("TimeZone", envOrDefault("DB_TIMEZONE", "Asia/Tokyo"))
-	dsn := (&url.URL{
-		Scheme:   "postgres",
-		User:     url.UserPassword(dbUser, dbPassword),
-		Host:     net.JoinHostPort(dbHost, dbPort),
-		Path:     dbName,
-		RawQuery: query.Encode(),
-	}).String()
+	dsn := fmt.Sprintf(
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s",
+		dbHost,
+		dbUser,
+		dbPassword,
+		dbName,
+		dbPort,
+		envOrDefault("DB_SSLMODE", "disable"),
+		envOrDefault("DB_TIMEZONE", "Asia/Tokyo"),
+	)
 
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
