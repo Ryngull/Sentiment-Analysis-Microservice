@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+option go_package = "gateway/proto";
+
+// Performs batch sentiment analysis.
+service TextAnalysisService {
+    // Returns one result per input text, preserving request order.
+    rpc AnalyzeText (AnalyzeRequest) returns (AnalyzeResponse);
+}
+
+message AnalyzeRequest {
+    repeated string texts = 1;
+}
+
+message AnalysisResult {
+    string sentiment = 1;
+    float confidence_score = 2;
+}
+
+message AnalyzeResponse {
+    // Results correspond by position to AnalyzeRequest.texts.
+    repeated AnalysisResult results = 1;
+    // Total model inference time for the batch.
+    int32 processing_time_ms = 2;
+}

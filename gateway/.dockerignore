@@ -1,0 +1,7 @@
+.git
+.gitignore
+Dockerfile
+inf.env
+*.log
+main
+*.exe

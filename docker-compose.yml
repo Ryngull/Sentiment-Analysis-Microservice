@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      TZ: ${DB_TIMEZONE:-Asia/Tokyo}
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./worker
+      args:
+        TORCH_VERSION: ${TORCH_VERSION:-2.5.1}
+    environment:
+      GRPC_BIND_ADDRESS: ${GRPC_BIND_ADDRESS:-[::]}
+      GRPC_PORT: ${WORKER_GRPC_PORT:-50051}
+      GRPC_MAX_WORKERS: ${GRPC_MAX_WORKERS:-10}
+      MODEL_NAME: ${MODEL_NAME:-distilbert/distilbert-base-uncased-finetuned-sst-2-english}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - model_cache:/home/app/.cache/huggingface
+    restart: unless-stopped
+
+  gateway:
+    build:
+      context: ./gateway
+    environment:
+      HTTP_ADDRESS: 0.0.0.0:${GATEWAY_CONTAINER_PORT:-8080}
+      GRPC_WORKER_ADDRESS: ${GRPC_WORKER_ADDRESS:-worker:50051}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      DB_NAME: ${POSTGRES_DB:?POSTGRES_DB is required}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+      DB_TIMEZONE: ${DB_TIMEZONE:-Asia/Tokyo}
+    ports:
+      - "${GATEWAY_HOST_PORT:-8080}:${GATEWAY_CONTAINER_PORT:-8080}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      worker:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O - http://127.0.0.1:${GATEWAY_CONTAINER_PORT:-8080}/healthz >/dev/null || exit 1",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  model_cache:

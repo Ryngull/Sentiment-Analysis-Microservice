@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Go build artifacts
+main
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Editors
+.idea/
+.vscode/
+*.suo
+*.sln
+
+# Operating system files and logs
+.DS_Store
+Thumbs.db
+*.log
+
+# Local files and backups
+/docs/
+/.backups/
+/log.txt
+
+# Environment files
+.env
+**/*.env
+
+# Public configuration templates remain trackable
+!.env.example
+!**/*.env.example
